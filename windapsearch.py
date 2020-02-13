@@ -631,6 +631,24 @@ def run(args):
 			print "[+]\t Found {} members:\n".format(len(groupMembers))
 			for member in groupMembers: print member
 
+	if args.all_group_members:
+		print "\n[+] Enumerating all members of each groups (only group with >0 members)"
+		allGroups, searchAttrs = ldapSession.getAllGroups(attrs=attrs)
+		if not allGroups:
+			bye(ldapSession)
+		print "[+]\tFound {} groups: \n".format(len(allGroups))
+		for group in allGroups:
+			groupMembers, searchAttrs = ldapSession.getNestedGroupMemberships(group.dn, attrs=attrs)
+                        if len(groupMembers) == 0: continue 
+			print "[x] Group {} :".format(group.dn)
+			print "[+]\tFound {} members:\n".format(len(groupMembers))
+                	prettyPrintResults(groupMembers)
+
+
+		if args.output_dir:
+			filename = "{}/{}-groups.tsv".format(args.output_dir, startTime)
+			writeResults(allGroups, searchAttrs, filename)
+
 	if args.da:
 		print "[+] Attempting to enumerate all Domain Admins"
 		daDN = "CN=Domain Admins,CN=Users,{}".format(ldapSession.domainBase)
@@ -774,6 +792,8 @@ if __name__ == '__main__':
 	egroup.add_argument("-PU", "--privileged-users", dest="privileged_users", action="store_true", help="Enumerate All privileged AD Users. Performs recursive lookups for nested members.")
 	egroup.add_argument("-C", "--computers", action="store_true", help="Enumerate all AD Computers")
 	egroup.add_argument("-m", "--members", metavar="GROUP_NAME", dest="group_name", type=str, help="Enumerate all members of a group")
+	egroup.add_argument("-AGM", "--all-group-members", action='store_true', dest="all_group_members", help="Enumerate all members for each group (can be huge, be careful)")
+
 	egroup.add_argument("--da", action="store_true", help="Shortcut for enumerate all members of group 'Domain Admins'. Performs recursive lookups for nested members.")
 	egroup.add_argument("--admin-objects", dest="admin_objects", action="store_true", help="Enumerate all objects with protected ACLs (i.e. admins)")
 	egroup.add_argument("--user-spns", dest="spns", action="store_true", help="Enumerate all users objects with Service Principal Names (for kerberoasting)")
